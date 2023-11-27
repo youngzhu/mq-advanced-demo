@@ -147,3 +147,54 @@ spring:
 当消费者出现异常后，消息会不断requeue（重入队）到队列，再重新发送给消费者，然后再次异常，再次requeue，无限循环，导致mq的消息处理飙升，带来不必要的压力。
 
 怎么办呢？
+### 4.1.本地重试
+
+我们可以利用Spring的retry机制，在消费者出现异常时利用本地重试，而不是无限制的requeue到mq队列。
+
+修改consumer服务的application.yml文件，添加内容：
+
+```yaml
+spring:
+  rabbitmq:
+    listener:
+      simple:
+        retry:
+          enabled: true # 开启消费者失败重试
+          initial-interval: 1000 # 初识的失败等待时长为1秒
+          multiplier: 1 # 失败的等待时长倍数，下次等待时长 = multiplier * lastInterval
+          max-attempts: 3 # 最大重试次数
+          stateless: true # true无状态；false有状态。如果业务中包含事务，这里改为false
+```
+
+重启consumer服务，重复之前的测试。可以发现：
+
+- 在重试4次后，SpringAMQP会抛出异常AmqpRejectAndDontRequeueException，说明本地重试触发了
+- 查看RabbitMQ控制台，发现消息被删除了，说明最后SpringAMQP返回的是ack，mq删除消息了
+
+结论：
+
+- 开启本地重试时，消息处理过程中抛出异常，不会requeue到队列，而是在消费者本地重试
+- 重试达到最大次数后，Spring会返回ack，消息会被丢弃
+
+### 4.2.失败策略
+
+在之前的测试中，达到最大重试次数后，消息会被丢弃，这是由Spring内部机制决定的。
+
+在开启重试模式后，重试次数耗尽，如果消息依然失败，则需要有MessageRecovery接口来处理，它包含三种不同的实现：
+- RejectAndDontRequeueRecoverer：重试耗尽后，直接reject，丢弃消息。默认就是这种方式
+- ImmediateRequeueMessageRecoverer：重试耗尽后，返回nack，消息重新入队
+- RepublishMessageRecoverer：重试耗尽后，将失败消息投递到指定的交换机
+
+比较优雅的一种处理方案是RepublishMessageRecoverer，失败后将消息投递到一个指定的，专门存放异常消息的队列，后续由人工集中处理，[ErrorMessageConfig.java](consumer/src/main/java/com/youngzy/mq/config/ErrorMessageConfig.java)
+1）在consumer服务中定义处理失败消息的交换机和队列
+2）定义一个RepublishMessageRecoverer，关联队列和交换机
+
+## 5.总结
+
+如何确保RabbitMQ消息的可靠性？
+
+- 开启生产者确认机制，确保生产者的消息能到达队列
+- 开启持久化功能，确保消息未消费前在队列中不会丢失
+- 开启消费者确认机制为auto，由Spring确认消息处理成功后完成ack
+- 开启消费者失败重试机制，并设置MessageRecoverer，多次重试失败后将消息投递到异常交换机，交由人工处理
+
