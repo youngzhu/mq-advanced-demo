@@ -86,4 +86,64 @@ SpringAMQP中可以通过代码指定交换机持久化，[simpleQueue()](consum
 默认情况下，SpringAMQP发出的任何消息都是持久化的，不用特意指定。
 
 ## 3. 消费者确认机制：消费成功则返回ack
-## 4. 消费者失败重试机制：
+RabbitMQ是**阅后即焚**机制，RabbitMQ确认消息被消费者消费后会立刻删除。
+
+而RabbitMQ是通过消费者回执来确认消费者是否成功处理消息的：消费者获取消息后，应该向RabbitMQ发送ACK回执，表明自己已经处理消息。
+
+设想这样的场景：
+- 1）RabbitMQ投递消息给消费者
+- 2）消费者获取消息后，返回ACK给RabbitMQ
+- 3）RabbitMQ删除消息
+- 4）消费者宕机，消息尚未处理
+
+这样，消息就丢失了。因此消费者返回ACK的时机非常重要。
+
+而SpringAMQP则允许配置三种确认模式：
+- manual：手动ack，需要在业务代码结束后，调用api发送ack。
+- auto：自动ack，由spring监测listener代码是否出现异常，没有异常则返回ack；抛出异常则返回nack
+- none：关闭ack，MQ假定消费者获取消息后会成功处理，因此消息投递后立即被删除
+
+由此可知：
+
+- none模式下，消息投递是不可靠的，可能丢失
+- auto模式类似事务机制，出现异常时返回nack，消息回滚到mq；没有异常，返回ack
+- manual：自己根据业务情况，判断什么时候该ack
+
+一般，我们都是使用默认的auto即可。
+
+### 3.1.none模式
+
+修改consumer服务的application.yml文件，添加下面内容：
+
+```yaml
+spring:
+  rabbitmq:
+    listener:
+      simple:
+        acknowledge-mode: none # 关闭ack
+```
+
+修改consumer服务的SpringRabbitListener类中的方法，模拟一个消息处理异常：[listenSimpleQueue()](consumer/src/main/java/com/youngzy/mq/listener/SpringRabbitListener.java)
+
+测试可以发现，当消息处理抛异常时，消息依然被RabbitMQ删除了。
+
+### 3.2.auto模式
+
+再次把确认机制修改为auto:
+
+```yaml
+spring:
+  rabbitmq:
+    listener:
+      simple:
+        acknowledge-mode: auto
+```
+
+在异常位置打断点，再次发送消息，程序卡在断点时，可以发现此时消息状态为unack（未确定状态）；
+
+抛出异常后，因为Spring会自动返回nack，所以消息恢复至Ready状态，并且没有被RabbitMQ删除
+
+## 4. 消费者失败重试机制
+当消费者出现异常后，消息会不断requeue（重入队）到队列，再重新发送给消费者，然后再次异常，再次requeue，无限循环，导致mq的消息处理飙升，带来不必要的压力。
+
+怎么办呢？

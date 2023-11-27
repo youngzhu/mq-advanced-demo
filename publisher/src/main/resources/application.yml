@@ -2,7 +2,7 @@ logging:
   pattern:
     dateformat: HH:mm:ss:SSS
   level:
-    cn.itcast: debug
+    com.youngzy: debug
 spring:
   rabbitmq:
     host: localhost # rabbitMQ的ip地址

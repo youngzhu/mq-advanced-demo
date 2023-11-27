@@ -2,18 +2,19 @@ logging:
   pattern:
     dateformat: HH:mm:ss:SSS
   level:
-    cn.itcast: debug
+    com.youngzy: debug
 spring:
   rabbitmq:
 #    host: 192.168.150.101 # rabbitMQ的ip地址
 #    port: 5672 # 端口
-    addresses: 192.168.150.101:8071, 192.168.150.101:8072, 192.168.150.101:8073
-    username: itcast
-    password: 123321
-    virtual-host: /
+    addresses: localhost
+    username: advanced
+    password: advanced
+    virtual-host: advanced
     listener:
       simple:
         prefetch: 1
+#        acknowledge-mode: none
         acknowledge-mode: auto
         retry:
           enabled: true

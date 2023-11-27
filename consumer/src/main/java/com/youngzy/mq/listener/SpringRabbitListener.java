@@ -11,12 +11,12 @@ import org.springframework.stereotype.Component;
 @Component
 public class SpringRabbitListener {
 
-  /*  @RabbitListener(queues = "simple.queue")
+    @RabbitListener(queues = "simple.queue")
     public void listenSimpleQueue(String msg) {
         log.debug("消费者接收到simple.queue的消息：【" + msg + "】");
         System.out.println(1 / 0);
         log.info("消费者处理消息成功！");
-    }*/
+    }
 
     @RabbitListener(bindings = @QueueBinding(
             value = @Queue(name = "dl.queue", durable = "true"),
