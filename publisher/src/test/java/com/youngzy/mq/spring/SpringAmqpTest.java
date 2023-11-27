@@ -53,7 +53,8 @@ public class SpringAmqpTest {
     @Test
     public void testDurableMessage() {
         // 1.准备消息
-        Message message = MessageBuilder.withBody("hello, spring".getBytes(StandardCharsets.UTF_8))
+        Message message = MessageBuilder
+                .withBody("hello, spring".getBytes(StandardCharsets.UTF_8))
                 .setDeliveryMode(MessageDeliveryMode.PERSISTENT)
                 .build();
         // 2.发送消息
