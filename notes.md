@@ -42,7 +42,7 @@ spring:
 
 ConfirmCallback可以在发送消息时指定，因为每个业务处理confirm成功或失败的逻辑不一定相同。
 
-在publisher服务中，创建一个单元测试方法：com.youngzy.mq.spring.SpringAmqpTest.testSendMessage2SimpleQueue
+在publisher服务中，创建一个单元测试方法：[testSendMessage2SimpleQueue()](publisher/src/test/java/com/youngzy/mq/spring/SpringAmqpTest.java)
 
 ## 2. 消息持久化：防止MQ重启导致消息丢失
 ## 3. 消费者确认机制：消费成功则返回ack
