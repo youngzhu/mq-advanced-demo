@@ -1,4 +1,4 @@
-package cn.itcast.mq.config;
+package com.youngzy.mq.config;
 
 import org.springframework.amqp.core.DirectExchange;
 import org.springframework.amqp.core.Queue;

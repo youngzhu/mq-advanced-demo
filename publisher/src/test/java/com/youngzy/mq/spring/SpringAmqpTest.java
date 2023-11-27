@@ -1,4 +1,4 @@
-package cn.itcast.mq.spring;
+package com.youngzy.mq.spring;
 
 import lombok.extern.slf4j.Slf4j;
 import org.junit.Test;
@@ -46,6 +46,7 @@ public class SpringAmqpTest {
             // 重发消息
         });
         // 3.发送消息
+//        rabbitTemplate.convertAndSend("amq.topic", "simple.test", message, correlationData);
         rabbitTemplate.convertAndSend("amq.topic", "a.simple.test", message, correlationData);
     }
 
