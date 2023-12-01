@@ -62,6 +62,18 @@ public class SpringAmqpTest {
     }
 
     @Test
+    public void testTTLQueue() {
+        // 创建消息
+        String message = "hello, ttl queue";
+        // 消息ID，需要封装到CorrelationData中
+        CorrelationData correlationData = new CorrelationData(UUID.randomUUID().toString());
+        // 发送消息
+        rabbitTemplate.convertAndSend("ttl.direct", "ttl", message, correlationData);
+        // 记录日志
+        log.debug("发送消息成功");
+    }
+
+    @Test
     public void testTTLMessage() {
         // 1.准备消息
         Message message = MessageBuilder
